@@ -1,13 +1,15 @@
-// SignupPage.java
 package hotel;
 
 import javax.swing.*;
 import java.awt.Font;
-import java.awt.Color;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
-@SuppressWarnings("unused")
 public class SignupPage {
 
     private JFrame frame;
@@ -15,8 +17,13 @@ public class SignupPage {
     private JTextField tfEmail;
     private JPasswordField tfPassword;
     private JButton btnSignup;
-    private String username; // Store username
-    private String role; // Store role
+    private String username;
+    private String role;
+
+    // Database connection details
+    private static final String DB_URL = "jdbc:mysql://localhost:3306/hotel";
+    private static final String DB_USER = "root";
+    private static final String DB_PASSWORD = "prachi@123";
 
     public SignupPage() {
         frame = new JFrame();
@@ -64,35 +71,63 @@ public class SignupPage {
                 username = tfName.getText();
                 String password = String.valueOf(tfPassword.getPassword());
                 String email = tfEmail.getText();
-                role = "user"; // Assuming signed up users have "user" role
+                role = "user";
+
                 insertIntoDatabase(username, password, email);
-                openCustomerAdminPage();
+
+                openCustomerAdminPage(username, role);
                 frame.dispose();
             }
         });
     }
 
     private void insertIntoDatabase(String username, String password, String email) {
-        // Insert into database logic
-        // Example SQL code:
-        // INSERT INTO users (username, password, email) VALUES ('username', 'password', 'email');
-        // Ensure you handle database operations properly
+        try {
+            Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+
+            // Check if the username already exists
+            String checkQuery = "SELECT COUNT(*) FROM signup WHERE username = ?";
+            PreparedStatement checkStatement = conn.prepareStatement(checkQuery);
+            checkStatement.setString(1, username);
+            ResultSet resultSet = checkStatement.executeQuery();
+            resultSet.next();
+            int count = resultSet.getInt(1);
+            if (count > 0) {
+                // Username already exists, handle this situation (e.g., show an error message)
+                System.out.println("Username already exists. Please choose a different username.");
+                return; // Exit method
+            }
+
+            // Prepare SQL statement for insertion
+            String sql = "INSERT INTO signup (username, password, email) VALUES (?, ?, ?)";
+            PreparedStatement statement = conn.prepareStatement(sql);
+            statement.setString(1, username);
+            statement.setString(2, password);
+            statement.setString(3, email);
+
+            // Execute insertion query
+            statement.executeUpdate();
+
+            // Close database resources
+            statement.close();
+            conn.close();
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
     }
 
-    private void openCustomerAdminPage() {
+
+    private void openCustomerAdminPage(String username, String role) {
         CustomerAdminPage customerAdminPage = new CustomerAdminPage(username, role);
         customerAdminPage.setVisible(true);
     }
-    
-    public void resetUserPwd() {
-        tfName.setText("");
-        tfPassword.setText("");
+
+    public void show() {
+        frame.setVisible(true);
     }
 
-	public void show() {
-		// TODO Auto-generated method stub
-		
-	}
-
-  
+    public static void main(String[] args) {
+        SignupPage signupPage = new SignupPage();
+        signupPage.show();
+    }
 }
