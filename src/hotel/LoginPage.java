@@ -2,6 +2,13 @@ package hotel;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 public class LoginPage {
 
@@ -13,6 +20,10 @@ public class LoginPage {
     private JLabel Ustar;
     private JLabel Pstar;
     private JButton btnSignup;
+    
+    private static final String DB_URL = "jdbc:mysql://localhost:3306/hotel";
+    private static final String DB_USER = "root";
+    private static final String DB_PASSWORD = "prachi@123";
 
     public LoginPage() {
         Ustar = new JLabel("*");
@@ -61,22 +72,22 @@ public class LoginPage {
         tfpwd.setBounds(489, 414, 208, 38);
         background.add(tfpwd);
 
-        // Login Button
+     // Login Button
         btnLogin = new JButton("LOGIN");
         btnLogin.setFont(new Font("Times New Roman", Font.BOLD, 23));
         btnLogin.setBounds(288, 513, 147, 50);
         background.add(btnLogin);
 
         // Signup Button
-        btnSignup = new JButton("Signup");
+        btnSignup = new JButton("SIGNUP");
         btnSignup.setFont(new Font("Times New Roman", Font.BOLD, 23));
-        btnSignup.setBounds(288, 513, 147, 50);
+        btnSignup.setBounds(448, 513, 151, 51); // Adjusted position to create space between the buttons
         background.add(btnSignup);
 
         // Cancel Button
         btnCancel = new JButton("QUIT");
         btnCancel.setFont(new Font("Times New Roman", Font.BOLD, 23));
-        btnCancel.setBounds(565, 513, 155, 51);
+        btnCancel.setBounds(618, 513, 157, 51); // Adjusted position to create space between the buttons
         background.add(btnCancel);
 
         Ustar.setForeground(Color.RED);
@@ -97,6 +108,75 @@ public class LoginPage {
 
         Ustar.setVisible(false);
         Pstar.setVisible(false);
+
+        // Add action listener to the login button
+        btnLogin.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String username = tfusername.getText();
+                String password = String.valueOf(tfpwd.getPassword());
+
+                // Check if user exists in the database
+                if (checkUserExists(username, password)) {
+                    // If user exists, open the customer admin page
+                    openCustomerAdminPage(username);
+                    frame.dispose();
+                } else {
+                    // If user does not exist, prompt them to sign up
+                    JOptionPane.showMessageDialog(frame, "User does not exist. Please sign up.");
+                }
+            }
+        });
+
+        // Add action listener to the signup button
+        btnSignup.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                openSignupPage();
+            }
+        });
+    }
+
+    // Method to check if user exists in the database
+ // Method to check if user exists in the database
+    private boolean checkUserExists(String username, String password) {
+        try {
+            Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+
+            // Prepare SQL statement to check if the user exists
+            String sql = "SELECT COUNT(*) FROM login WHERE username = ? AND password = ?";
+            PreparedStatement statement = conn.prepareStatement(sql);
+            statement.setString(1, username);
+            statement.setString(2, password);
+
+            // Execute query
+            ResultSet resultSet = statement.executeQuery();
+
+            // If resultSet has at least one row, user exists
+            if (resultSet.next()) {
+                int count = resultSet.getInt(1);
+                return count > 0;
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+        return false; // User doesn't exist or error occurred
+    }
+
+
+    // Method to open the customer admin page
+    private void openCustomerAdminPage(String username) {
+        // Open the customer admin page and pass the username
+        CustomerAdminPage customerAdminPage = new CustomerAdminPage(username, "user");
+        customerAdminPage.setVisible(true);
+    }
+
+    // Method to open the signup page
+    private void openSignupPage() {
+        // Open the signup page
+        SignupPage signupPage = new SignupPage();
+        // Show the signup page
+        signupPage.show();
     }
 
     public JFrame getFrame() {
@@ -139,5 +219,11 @@ public class LoginPage {
 
     public void show() {
         frame.setVisible(true);
+    }
+
+    public static void main(String[] args) {
+        // Create and display the login page
+        LoginPage loginPage = new LoginPage();
+        loginPage.show();
     }
 }
